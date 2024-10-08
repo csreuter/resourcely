@@ -1,0 +1,15 @@
+# Repo with one very simple config root
+#
+# Assume the repo is stuctured like
+#
+# network.tf
+# main.tf
+# providers.tf
+# terraform.tf
+
+version: "2"
+
+terraform_config_roots:
+  - name: "My cool Resourcely project"
+    path: .
+    default_file: main.tf
