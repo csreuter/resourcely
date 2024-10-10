@@ -13,3 +13,7 @@ terraform_config_roots:
   - name: "My cool Resourcely project"
     path: .
     default_file: main.tf
+    environments:
+      - name: production
+        plan_files:
+          - tf-plan-files/production/plan.tfplan
