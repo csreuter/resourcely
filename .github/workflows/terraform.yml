@@ -17,28 +17,27 @@ jobs:
         shell: bash
 
     steps:
+      # Step 1: Checkout the repository
       - name: Checkout
         uses: actions/checkout@v3
 
+      # Step 2: Setup Terraform (Upgraded to v2 to avoid deprecation warnings)
       - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v1
+        uses: hashicorp/setup-terraform@v2
 
+      # Step 3: Initialize Terraform
       - name: Terraform Init
         run: terraform init
 
+      # Step 4: Terraform Plan
       - name: Terraform Plan
         run: terraform plan -out=plan.raw
 
-      - name: Convert the plan to JSON
-        id: planToJson
-        run: terraform show -json plan.raw
+      # Step 5: Convert the Terraform plan to JSON (Replaces CmdToFile action)
+      - name: Convert Terraform Plan to JSON
+        run: terraform show -json plan.raw > plan.json
 
-      - name: Save JSON to a file
-        uses: fishcharlie/CmdToFile@v1.0.0
-        with:
-          data: ${{ steps.planToJson.outputs.stdout }}
-          output: plan.json
-
+      # Step 6: Upload the Terraform Plan JSON as an artifact
       - name: Upload Terraform Plan Output
         uses: actions/upload-artifact@v4
         with:
@@ -46,24 +45,39 @@ jobs:
           path: plan.json
 
   resourcely-ci:
+    name: 'Resourcely CI'
     needs: terraform
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
-    environment: production
-    
+    environment: production  # Ensure consistent environment
+
     steps:
+      # Step 1: Checkout the repository
       - name: Checkout
         uses: actions/checkout@v3
 
+      # Step 2: Download the Terraform Plan artifact
       - name: Download Terraform Plan Output
         uses: actions/download-artifact@v4
         with:
           name: plan-file
           path: tf-plan-files/
 
+      # Step 3: Prepare the tf-plan-files directory (Ensure it exists)
+      - name: Ensure tf-plan-files Directory Exists
+        run: |
+          if [[ -d "tf-plan-files" ]]; then
+            echo "Directory already exists"
+          else
+            mkdir tf-plan-files
+          fi
+
+      # Step 4: Run Resourcely CI Action
       - name: Resourcely CI
         uses: Resourcely-Inc/resourcely-action@v1
         with:
           resourcely_api_token: ${{ secrets.RESOURCELY_API_TOKEN }}
           resourcely_api_host: "https://api.resourcely.io"
           tf_plan_directory: "tf-plan-files"
+          docker_tag: "latest"  # Optional: Specify Docker tag if needed
+          tf_plan_pattern: "plan*"  # Optional: Specify pattern to match plan files
